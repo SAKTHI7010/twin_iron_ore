@@ -79,7 +79,7 @@ with st.sidebar:
 
 # ── Main Content ───────────────────────────────────────────────────────
 st.markdown("""
-<div style="display:flex;align-items:center;gap:14px;margin-bottom:5px;">
+<div style="display:flex;align-items:center;gap:14px;margin-bottom:15px;">
     <span style="font-size:2.2rem;">🏭</span>
     <div>
         <div style="font-size:1.5rem;font-weight:800;color:#FAFAFA;letter-spacing:0.5px;">
@@ -91,6 +91,11 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
+
+import os
+banner_path = os.path.join(os.path.dirname(__file__), "assets", "banner.jpg")
+if os.path.exists(banner_path):
+    st.image(banner_path, use_container_width=True)
 
 render_simulated_banner()
 
