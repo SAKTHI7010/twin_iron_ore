@@ -106,6 +106,11 @@ if state:
     # ── Equipment Status Grid ──────────────────────────────────────────
     st.markdown('<div class="section-header">🏭 Equipment Status</div>', unsafe_allow_html=True)
 
+    import os
+    hpgr_path = os.path.join(os.path.dirname(__file__), "..", "assets", "hpgr.jpg")
+    if os.path.exists(hpgr_path):
+        st.image(hpgr_path, caption="Live HPGR Monitoring Camera Feed", use_container_width=True)
+
     eq_list = list(equipment.items())
     cols_per_row = 3
     for i in range(0, len(eq_list), cols_per_row):

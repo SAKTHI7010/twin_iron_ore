@@ -122,63 +122,29 @@ if state:
     col_left, col_right = st.columns([2, 1])
 
     with col_left:
-        st.markdown('<div class="section-header">📊 Process Flow Overview</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">🌍 Interactive 3D Digital Twin</div>', unsafe_allow_html=True)
 
-        # Create a visual process flow
-        process_stages = [
-            ("🪨", "ROM Feed", equipment.get("rom_feed", {})),
-            ("⚙️", "HPGR", equipment.get("hpgr", {})),
-            ("🧲", "Coarse Mag Sep", equipment.get("coarse_mag_sep", {})),
-            ("🔄", "Fine Grinding", equipment.get("fine_grinding", {})),
-            ("🧲", "Fine Mag Sep", equipment.get("fine_mag_sep", {})),
-            ("🔄", "Further Grinding", equipment.get("further_grinding", {})),
-            ("🫧", "Flotation", equipment.get("flotation", {})),
-            ("🏗️", "Thickener", equipment.get("thickener", {})),
-            ("✅", "Final Product", equipment.get("final_product", {})),
-            ("💧", "Water Recovery", equipment.get("water_recovery", {})),
-        ]
+        # Load and inject data into Three.js template
+        import os
+        import json
+        import streamlit.components.v1 as components
+        threejs_dir = os.path.join(os.path.dirname(__file__), "threejs")
+        template_path = os.path.join(threejs_dir, "plant_3d.html")
 
-        # Display in 2 rows of 5
-        for row_start in [0, 5]:
-            cols = st.columns(5)
-            for i, col in enumerate(cols):
-                idx = row_start + i
-                if idx < len(process_stages):
-                    icon, name, data = process_stages[idx]
-                    status = data.get("status", "IDLE")
-                    badge = render_status_badge(status)
+        try:
+            with open(template_path, "r", encoding="utf-8") as f:
+                html_template = f.read()
 
-                    # Pick a key metric to show
-                    metric_val = ""
-                    if "throughput" in data:
-                        metric_val = f"{data['throughput']} t/h"
-                    elif "feed_rate" in data:
-                        metric_val = f"{data['feed_rate']} t/h"
-                    elif "fe_grade" in data:
-                        metric_val = f"Fe {data['fe_grade']}%"
-                    elif "fe_pct" in data:
-                        metric_val = f"Fe {data['fe_pct']}%"
-                    elif "production_rate" in data:
-                        metric_val = f"{data['production_rate']} t/h"
-                    elif "water_recovery_pct" in data:
-                        metric_val = f"{data['water_recovery_pct']}%"
-                    elif "concentrate_flow" in data:
-                        metric_val = f"{data['concentrate_flow']} t/h"
-                    elif "bed_level" in data:
-                        metric_val = f"{data['bed_level']} m"
+            # Inject live data
+            html_content = html_template.replace(
+                "__EQUIPMENT_DATA__", json.dumps(equipment)
+            ).replace(
+                "__PLANT_DATA__", json.dumps(plant)
+            )
 
-                    with col:
-                        st.markdown(f"""
-                        <div class="flow-node">
-                            <div style="font-size:1.4rem;">{icon}</div>
-                            <div class="flow-node-title">{name}</div>
-                            <div class="flow-node-value">{metric_val}</div>
-                            {badge}
-                        </div>
-                        """, unsafe_allow_html=True)
-
-            if row_start == 0:
-                st.markdown('<div class="flow-arrow">⬇</div>', unsafe_allow_html=True)
+            components.html(html_content, height=620, scrolling=False)
+        except Exception as e:
+            st.error(f"Could not load 3D model: {e}")
 
     with col_right:
         st.markdown('<div class="section-header">🏭 Plant Summary</div>', unsafe_allow_html=True)

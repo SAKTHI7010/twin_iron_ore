@@ -25,6 +25,11 @@ st.markdown("""
 
 render_simulated_banner()
 
+import os
+analysis_path = os.path.join(os.path.dirname(__file__), "..", "assets", "analysis.jpg")
+if os.path.exists(analysis_path):
+    st.image(analysis_path, use_container_width=True)
+
 # Fetch historical data
 history_resp = get_history(limit=200)
 records = history_resp.get("records", []) if history_resp else []
