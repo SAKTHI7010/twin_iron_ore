@@ -25,7 +25,7 @@ services:
     startCommand: streamlit run app.py --server.address 0.0.0.0 --server.port $PORT
     envVars:
       - key: BACKEND_URL
-        value: https://iron-ore-dt-backend.onrender.com
+        value: https://twin-iron-ore.onrender.com
       - key: APP_ENV
         value: production
       - key: PYTHON_VERSION
