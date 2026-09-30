@@ -1,0 +1,28 @@
+# Render deployment configuration
+# Deploy frontend and backend as two separate Web Services
+
+services:
+  # ── FastAPI Backend ────────────────────────────────────────────────
+  - type: web
+    name: iron-ore-dt-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+    healthCheckPath: /health
+
+  # ── Streamlit Frontend ─────────────────────────────────────────────
+  - type: web
+    name: iron-ore-dt-frontend
+    runtime: python
+    rootDir: frontend
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.address 0.0.0.0 --server.port $PORT
+    envVars:
+      - key: BACKEND_URL
+        value: https://iron-ore-dt-backend.onrender.com
+      - key: APP_ENV
+        value: production

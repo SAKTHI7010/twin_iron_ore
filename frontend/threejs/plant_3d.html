@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0E1117;
+    overflow: hidden;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+  }
+  #canvas-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+  canvas { display: block; }
+
+  /* Equipment tooltip */
+  #tooltip {
+    position: absolute;
+    background: rgba(26, 29, 41, 0.95);
+    border: 1px solid rgba(255, 107, 53, 0.5);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: #FAFAFA;
+    font-size: 12px;
+    pointer-events: none;
+    display: none;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    z-index: 100;
+    max-width: 260px;
+  }
+  #tooltip .tt-title {
+    font-weight: 700;
+    font-size: 13px;
+    color: #FF6B35;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  #tooltip .tt-status {
+    margin-bottom: 6px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    display: inline-block;
+  }
+  #tooltip .tt-param {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+    font-size: 11px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  #tooltip .tt-param-label { color: #8892a4; }
+  #tooltip .tt-param-value { color: #FAFAFA; font-weight: 600; }
+
+  /* Legend */
+  #legend {
+    position: absolute;
+    bottom: 15px;
+    left: 15px;
+    background: rgba(26, 29, 41, 0.9);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #8892a4;
+    font-size: 10px;
+    backdrop-filter: blur(10px);
+  }
+  #legend div {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 3px 0;
+  }
+  #legend .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* Controls hint */
+  #controls-hint {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(26, 29, 41, 0.8);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #6b7280;
+    font-size: 10px;
+    backdrop-filter: blur(5px);
+  }
+
+  /* Title */
+  #scene-title {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    color: #FF6B35;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
+  }
+</style>
+</head>
+<body>
+<div id="canvas-container">
+  <div id="scene-title">🏭 Iron Ore Beneficiation Plant — 3D Digital Twin</div>
+  <div id="tooltip"></div>
+  <div id="legend">
+    <div><span class="dot" style="background:#10b981"></span> Running</div>
+    <div><span class="dot" style="background:#f59e0b"></span> Warning</div>
+    <div><span class="dot" style="background:#ef4444"></span> Fault</div>
+    <div><span class="dot" style="background:#6b7280"></span> Idle</div>
+  </div>
+  <div id="controls-hint">
+    🖱️ Left drag: Orbit · Right drag: Pan · Scroll: Zoom · Click: Details
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// Iron Ore Beneficiation Plant — Three.js 3D Digital Twin
+// ══════════════════════════════════════════════════════════════════════
+
+const EQUIPMENT_DATA = __EQUIPMENT_DATA__;
+const PLANT_DATA = __PLANT_DATA__;
+
+// ── Scene Setup ─────────────────────────────────────────────────────
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0E1117);
+scene.fog = new THREE.FogExp2(0x0E1117, 0.008);
+
+const camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 0.1, 1000);
+camera.position.set(0, 35, 55);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+container.appendChild(renderer.domElement);
+
+// ── Lighting ────────────────────────────────────────────────────────
+const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xffeedd, 1.0);
+dirLight.position.set(30, 50, 30);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+scene.add(dirLight);
+
+const fillLight = new THREE.DirectionalLight(0x3366ff, 0.3);
+fillLight.position.set(-20, 20, -20);
+scene.add(fillLight);
+
+const rimLight = new THREE.PointLight(0xFF6B35, 0.5, 100);
+rimLight.position.set(0, 30, -30);
+scene.add(rimLight);
+
+// ── Ground Plane ────────────────────────────────────────────────────
+const groundGeo = new THREE.PlaneGeometry(200, 100);
+const groundMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1d29,
+    roughness: 0.95,
+    metalness: 0.05,
+});
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.5;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Grid
+const gridHelper = new THREE.GridHelper(200, 40, 0x2a2d3e, 0x1e2130);
+gridHelper.position.y = -0.4;
+scene.add(gridHelper);
+
+// ── Status Colors ───────────────────────────────────────────────────
+const STATUS_COLORS = {
+    RUNNING: 0x10b981,
+    WARNING: 0xf59e0b,
+    FAULT: 0xef4444,
+    IDLE: 0x6b7280,
+    MAINTENANCE: 0x3b82f6,
+};
+
+function getStatusColor(status) {
+    return STATUS_COLORS[status] || STATUS_COLORS.IDLE;
+}
+
+// ── Equipment Definitions ───────────────────────────────────────────
+const equipmentList = [
+    { id: 'rom_feed', label: 'ROM Feed', x: -36, z: 0, type: 'hopper' },
+    { id: 'hpgr', label: 'HPGR', x: -27, z: 0, type: 'crusher' },
+    { id: 'coarse_mag_sep', label: 'Coarse Mag Sep', x: -18, z: 0, type: 'separator' },
+    { id: 'fine_grinding', label: 'Fine Grinding', x: -9, z: 0, type: 'mill' },
+    { id: 'fine_mag_sep', label: 'Fine Mag Sep', x: 0, z: 0, type: 'separator' },
+    { id: 'further_grinding', label: 'Further Grinding', x: 9, z: 0, type: 'mill' },
+    { id: 'flotation', label: 'Flotation', x: 18, z: 0, type: 'flotation' },
+    { id: 'thickener', label: 'Thickener', x: 27, z: 0, type: 'thickener' },
+    { id: 'final_product', label: 'Final Product', x: 36, z: 0, type: 'storage' },
+    { id: 'water_recovery', label: 'Water Recovery', x: 27, z: -14, type: 'tank' },
+];
+
+const equipmentMeshes = {};
+const equipmentGroups = {};
+const labels = [];
+
+// ── Equipment Shape Builders ────────────────────────────────────────
+function createHopper(status) {
+    const group = new THREE.Group();
+    const color = getStatusColor(status);
+
+    // Main body — trapezoid shape using custom geometry
+    const bodyGeo = new THREE.CylinderGeometry(2.5, 1.5, 5, 6);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.6, metalness: 0.4 });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 3.5;
+    body.castShadow = true;
+    group.add(body);
+
+    // Feed chute
+    const chuteGeo = new THREE.BoxGeometry(1.2, 2, 1.2);
+    const chuteMat = new THREE.MeshStandardMaterial({ color: 0x6B4423, roughness: 0.7 });
+    const chute = new THREE.Mesh(chuteGeo, chuteMat);
+    chute.position.y = 0.5;
+    group.add(chute);
+
+    // Status indicator
+    addStatusLight(group, color, 6.5);
+    return group;
+}
+
+function createCrusher(status) {
+    const group = new THREE.Group();
+    const color = getStatusColor(status);
+
+    // Main housing
+    const housingGeo = new THREE.BoxGeometry(4, 4, 3.5);
+    const housingMat = new THREE.MeshStandardMaterial({ color: 0x4a5568, roughness: 0.5, metalness: 0.6 });
+    const housing = new THREE.Mesh(housingGeo, housingMat);
+    housing.position.y = 2.5;
+    housing.castShadow = true;
+    group.add(housing);
+
+    // Rollers
+    for (let i = -1; i <= 1; i += 2) {
+        const rollerGeo = new THREE.CylinderGeometry(0.8, 0.8, 4, 16);
+        const rollerMat = new THREE.MeshStandardMaterial({ color: 0x718096, roughness: 0.3, metalness: 0.8 });
+        const roller = new THREE.Mesh(rollerGeo, rollerMat);
+        roller.rotation.z = Math.PI / 2;
+        roller.position.set(i * 0.9, 2.5, 0);
+        group.add(roller);
+    }
+
+    // Motor
+    const motorGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.5, 8);
+    const motorMat = new THREE.MeshStandardMaterial({ color: 0x2d3748, roughness: 0.4, metalness: 0.7 });
+    const motor = new THREE.Mesh(motorGeo, motorMat);
+    motor.rotation.z = Math.PI / 2;
+    motor.position.set(2.8, 3.5, 0);
+    group.add(motor);
+
+    addStatusLight(group, color, 5);
+    return group;
+}
+
+function createSeparator(status) {
+    const group = new THREE.Group();
+    const color = getStatusColor(status);
+
+    // Drum body
+    const drumGeo = new THREE.CylinderGeometry(2, 2, 3.5, 20);
+    const drumMat = new THREE.MeshStandardMaterial({ color: 0x5a67d8, roughness: 0.4, metalness: 0.6 });
+    const drum = new THREE.Mesh(drumGeo, drumMat);
+    drum.rotation.z = Math.PI / 2;
+    drum.position.y = 3;
+    drum.castShadow = true;
+    group.add(drum);
+
+    // Magnetic coils (rings)
+    for (let i = -1; i <= 1; i++) {
+        const ringGeo = new THREE.TorusGeometry(2.2, 0.15, 8, 24);
+        const ringMat = new THREE.MeshStandardMaterial({ color: 0x805ad5, roughness: 0.3, metalness: 0.7, emissive: 0x2d1b69, emissiveIntensity: 0.3 });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.set(i * 1.0, 3, 0);
+        ring.rotation.y = Math.PI / 2;
+        group.add(ring);
+    }
+
+    // Support frame
+    const legGeo = new THREE.BoxGeometry(0.2, 2, 0.2);
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x4a5568 });
+    for (let x of [-1.5, 1.5]) {
+        for (let z of [-1.5, 1.5]) {
+            const leg = new THREE.Mesh(legGeo, legMat);
+            leg.position.set(x, 0.5, z);
+            group.add(leg);
+        }
+    }
+
+    addStatusLight(group, color, 5.5);
+    return group;
+}
+
+function createMill(status) {
+    const group = new THREE.Group();
+    const color = getStatusColor(status);
+
+    // Mill body (horizontal cylinder)
+    const millGeo = new THREE.CylinderGeometry(2, 2.2, 4.5, 16);
+    const millMat = new THREE.MeshStandardMaterial({ color: 0x718096, roughness: 0.5, metalness: 0.5 });
+    const mill = new THREE.Mesh(millGeo, millMat);
+    mill.position.y = 3;
+    mill.castShadow = true;
+    group.add(mill);
+
+    // Gear ring
+    const gearGeo = new THREE.TorusGeometry(2.3, 0.2, 6, 32);
+    const gearMat = new THREE.MeshStandardMaterial({ color: 0x4a5568, roughness: 0.3, metalness: 0.8 });
+    const gear = new THREE.Mesh(gearGeo, gearMat);
+    gear.position.y = 3;
+    group.add(gear);
+
+    // Feed/discharge chutes
+    const chute1Geo = new THREE.BoxGeometry(0.8, 1.5, 0.8);
+    const chuteMat = new THREE.MeshStandardMaterial({ color: 0x4a5568 });
+    const chute1 = new THREE.Mesh(chute1Geo, chuteMat);
+    chute1.position.set(0, 5.5, 0);
+    group.add(chute1);
+
+    addStatusLight(group, color, 5.8);
+    return group;
+}
+
+function createFlotation(status) {
+    const group = new THREE.Group();
+    const color = getStatusColor(status);
+
+    // Flotation cells (3 connected tanks)
+    for (let i = -1; i <= 1; i++) {
+        const cellGeo = new THREE.BoxGeometry(2.2, 3, 2.5);
+        const cellMat = new THREE.MeshStandardMaterial({
+            color: 0x2d6a4f,
+            roughness: 0.5,
+            metalness: 0.4,
+            transparent: true,
+            opacity: 0.85
+        });
+        const cell = new THREE.Mesh(cellGeo, cellMat);
+        cell.position.set(i * 2.3, 2, 0);
+        cell.castShadow = true;
+        group.add(cell);
+
+        // Froth top (lighter color)
+        const frothGeo = new THREE.BoxGeometry(2.1, 0.6, 2.4);
+        const frothMat = new THREE.MeshStandardMaterial({
+            color: 0x52b788,
+            roughness: 0.8,
+            transparent: true,
+            opacity: 0.6,
+            emissive: 0x1b4332,
+            emissiveIntensity: 0.2
+        });
+        const froth = new THREE.Mesh(frothGeo, frothMat);
+        froth.position.set(i * 2.3, 3.8, 0);
+        group.add(froth);
+
+        // Impeller shaft
+        const shaftGeo = new THREE.CylinderGeometry(0.1, 0.1, 4, 8);
+        const shaftMat = new THREE.MeshStandardMaterial({ color: 0x9ca3af, metalness: 0.8 });
+        const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+        shaft.position.set(i * 2.3, 4, 0);
+        group.add(shaft);
+    }
+
+    addStatusLight(group, color, 6.5);
+    return group;
+}
+
+function createThickener(status) {
+    const group = new THREE.Group();
+    const color = getStatusColor(status);
+
+    // Large circular tank
+    const tankGeo = new THREE.CylinderGeometry(3, 3, 2.5, 24);
+    const tankMat = new THREE.MeshStandardMaterial({
+        color: 0x4a5568,
+        roughness: 0.5,
+        metalness: 0.5,
+        transparent: true,
+        opacity: 0.8
+    });
+    const tank = new THREE.Mesh(tankGeo, tankMat);
+    tank.position.y = 1.75;
+    tank.castShadow = true;
+    group.add(tank);
+
+    // Slurry surface
+    const surfaceGeo = new THREE.CylinderGeometry(2.8, 2.8, 0.2, 24);
+    const surfaceMat = new THREE.MeshStandardMaterial({
+        color: 0xb45309,
+        roughness: 0.9,
+        transparent: true,
+        opacity: 0.5,
+        emissive: 0x78350f,
+        emissiveIntensity: 0.15
+    });
+    const surface = new THREE.Mesh(surfaceGeo, surfaceMat);
+    surface.position.y = 2.5;
+    group.add(surface);
+
+    // Rake arm
+    const rakeGeo = new THREE.BoxGeometry(5.5, 0.15, 0.15);
+    const rakeMat = new THREE.MeshStandardMaterial({ color: 0x9ca3af, metalness: 0.7 });
+    const rake = new THREE.Mesh(rakeGeo, rakeMat);
+    rake.position.y = 3.2;
+    group.add(rake);
+
+    // Center column
+    const colGeo = new THREE.CylinderGeometry(0.2, 0.2, 4, 8);
+    const colMat = new THREE.MeshStandardMaterial({ color: 0x6b7280, metalness: 0.6 });
+    const col = new THREE.Mesh(colGeo, colMat);
+    col.position.y = 2.5;
+    group.add(col);
+
+    // Walkway bridge
+    const bridgeGeo = new THREE.BoxGeometry(3.5, 0.1, 0.6);
+    const bridgeMat = new THREE.MeshStandardMaterial({ color: 0x374151 });
+    const bridge = new THREE.Mesh(bridgeGeo, bridgeMat);
+    bridge.position.set(0, 3.5, 0);
+    group.add(bridge);
+
+    addStatusLight(group, color, 4.2);
+    return group;
+}
+
+function createStorage(status) {
+    const group = new THREE.Group();
+    const color = getStatusColor(status);
+
+    // Stockpile (cone shape)
+    const pileGeo = new THREE.ConeGeometry(3, 3.5, 8);
+    const pileMat = new THREE.MeshStandardMaterial({
+        color: 0xb45309,
+        roughness: 0.9,
+        metalness: 0.1
+    });
+    const pile = new THREE.Mesh(pileGeo, pileMat);
+    pile.position.y = 1.75;
+    pile.castShadow = true;
+    group.add(pile);
+
+    // Conveyor feed
+    const convGeo = new THREE.BoxGeometry(3, 0.2, 0.8);
+    const convMat = new THREE.MeshStandardMaterial({ color: 0x4a5568 });
+    const conv = new THREE.Mesh(convGeo, convMat);
+    conv.position.set(-1, 4, 0);
+    conv.rotation.z = 0.4;
+    group.add(conv);
+
+    addStatusLight(group, color, 4);
+    return group;
+}
+
+function createTank(status) {
+    const group = new THREE.Group();
+    const color = getStatusColor(status);
+
+    // Cylindrical water tank
+    const tankGeo = new THREE.CylinderGeometry(2.2, 2.2, 4, 16);
+    const tankMat = new THREE.MeshStandardMaterial({
+        color: 0x2563eb,
+        roughness: 0.4,
+        metalness: 0.5,
+        transparent: true,
+        opacity: 0.75
+    });
+    const tank = new THREE.Mesh(tankGeo, tankMat);
+    tank.position.y = 2.5;
+    tank.castShadow = true;
+    group.add(tank);
+
+    // Water level indicator
+    const waterGeo = new THREE.CylinderGeometry(2.0, 2.0, 3, 16);
+    const waterMat = new THREE.MeshStandardMaterial({
+        color: 0x3b82f6,
+        roughness: 0.2,
+        transparent: true,
+        opacity: 0.4,
+        emissive: 0x1d4ed8,
+        emissiveIntensity: 0.2
+    });
+    const water = new THREE.Mesh(waterGeo, waterMat);
+    water.position.y = 2;
+    group.add(water);
+
+    // Pipes
+    const pipeGeo = new THREE.CylinderGeometry(0.15, 0.15, 6, 8);
+    const pipeMat = new THREE.MeshStandardMaterial({ color: 0x6b7280, metalness: 0.7 });
+    const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+    pipe.rotation.z = Math.PI / 2;
+    pipe.position.set(0, 1.5, 2.5);
+    group.add(pipe);
+
+    addStatusLight(group, color, 5);
+    return group;
+}
+
+function addStatusLight(group, color, height) {
+    const lightGeo = new THREE.SphereGeometry(0.25, 12, 12);
+    const lightMat = new THREE.MeshStandardMaterial({
+        color: color,
+        emissive: color,
+        emissiveIntensity: 0.8,
+        roughness: 0.2
+    });
+    const light = new THREE.Mesh(lightGeo, lightMat);
+    light.position.y = height;
+    group.add(light);
+
+    // Point light for glow
+    const glow = new THREE.PointLight(color, 0.4, 8);
+    glow.position.y = height;
+    group.add(glow);
+}
+
+// ── Create Equipment Label ──────────────────────────────────────────
+function createLabel(text, position) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 256;
+    canvas.height = 64;
+
+    ctx.fillStyle = 'rgba(26, 29, 41, 0.85)';
+    ctx.roundRect(0, 0, 256, 64, 8);
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255, 107, 53, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.roundRect(0, 0, 256, 64, 8);
+    ctx.stroke();
+
+    ctx.fillStyle = '#FAFAFA';
+    ctx.font = 'bold 18px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 128, 32);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.position.copy(position);
+    sprite.position.y += 8;
+    sprite.scale.set(6, 1.5, 1);
+    return sprite;
+}
+
+// ── Build Equipment ─────────────────────────────────────────────────
+const createFunctions = {
+    hopper: createHopper,
+    crusher: createCrusher,
+    separator: createSeparator,
+    mill: createMill,
+    flotation: createFlotation,
+    thickener: createThickener,
+    storage: createStorage,
+    tank: createTank,
+};
+
+equipmentList.forEach(eq => {
+    const eqData = EQUIPMENT_DATA[eq.id] || {};
+    const status = eqData.status || 'IDLE';
+    const createFn = createFunctions[eq.type] || createHopper;
+    const group = createFn(status);
+    group.position.set(eq.x, 0, eq.z);
+    group.userData = { id: eq.id, label: eq.label, data: eqData };
+    scene.add(group);
+    equipmentGroups[eq.id] = group;
+
+    // Add label
+    const label = createLabel(eq.label, new THREE.Vector3(eq.x, 0, eq.z));
+    scene.add(label);
+    labels.push(label);
+});
+
+// ── Connecting Pipes/Conveyors ──────────────────────────────────────
+function createConnection(from, to, isWater) {
+    const color = isWater ? 0x3b82f6 : 0xFF6B35;
+    const fromPos = new THREE.Vector3(from.x, 1.5, from.z);
+    const toPos = new THREE.Vector3(to.x, 1.5, to.z);
+
+    const dir = new THREE.Vector3().subVectors(toPos, fromPos);
+    const len = dir.length();
+    dir.normalize();
+
+    const pipeGeo = new THREE.CylinderGeometry(0.12, 0.12, len, 8);
+    const pipeMat = new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.4,
+        metalness: 0.6,
+        transparent: true,
+        opacity: 0.7,
+        emissive: color,
+        emissiveIntensity: 0.1
+    });
+    const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+
+    const mid = new THREE.Vector3().addVectors(fromPos, toPos).multiplyScalar(0.5);
+    pipe.position.copy(mid);
+
+    pipe.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        dir
+    );
+    scene.add(pipe);
+    return pipe;
+}
+
+// Connect process stages sequentially
+for (let i = 0; i < equipmentList.length - 2; i++) {
+    createConnection(equipmentList[i], equipmentList[i + 1], false);
+}
+// Water recovery connection back
+createConnection(equipmentList[7], equipmentList[9], true);  // Thickener → Water Recovery
+
+// ── Ore Particles Animation ─────────────────────────────────────────
+const particles = [];
+const particleGeo = new THREE.SphereGeometry(0.2, 6, 6);
+
+function createParticle(startIdx) {
+    const color = startIdx < 5 ? 0xb45309 : 0xd97706;
+    const mat = new THREE.MeshStandardMaterial({
+        color: color,
+        emissive: color,
+        emissiveIntensity: 0.3,
+        roughness: 0.8
+    });
+    const mesh = new THREE.Mesh(particleGeo, mat);
+    mesh.scale.setScalar(0.3 + Math.random() * 0.5);
+
+    const from = equipmentList[startIdx];
+    const to = equipmentList[Math.min(startIdx + 1, equipmentList.length - 2)];
+    mesh.position.set(from.x, 1.5 + Math.random() * 0.5, from.z + (Math.random() - 0.5) * 0.5);
+    scene.add(mesh);
+
+    return {
+        mesh,
+        fromIdx: startIdx,
+        toIdx: Math.min(startIdx + 1, equipmentList.length - 2),
+        progress: 0,
+        speed: 0.003 + Math.random() * 0.004,
+    };
+}
+
+// Create initial particles
+for (let i = 0; i < 25; i++) {
+    const idx = Math.floor(Math.random() * (equipmentList.length - 2));
+    particles.push(createParticle(idx));
+}
+
+// ── Water Particles ─────────────────────────────────────────────────
+const waterParticles = [];
+const waterGeo = new THREE.SphereGeometry(0.15, 6, 6);
+const waterMat = new THREE.MeshStandardMaterial({
+    color: 0x3b82f6,
+    emissive: 0x1d4ed8,
+    emissiveIntensity: 0.4,
+    transparent: true,
+    opacity: 0.7
+});
+
+for (let i = 0; i < 8; i++) {
+    const wMesh = new THREE.Mesh(waterGeo, waterMat.clone());
+    wMesh.position.set(27, 1.5, -14 * (i / 8));
+    scene.add(wMesh);
+    waterParticles.push({ mesh: wMesh, progress: i / 8 });
+}
+
+// ── Camera Controls (OrbitControls inline) ──────────────────────────
+let isDragging = false;
+let isRightDrag = false;
+let prevMouse = { x: 0, y: 0 };
+let camTheta = 0;
+let camPhi = Math.PI / 4;
+let camDist = 60;
+let camTarget = new THREE.Vector3(0, 5, 0);
+
+function updateCamera() {
+    camera.position.x = camTarget.x + camDist * Math.sin(camPhi) * Math.sin(camTheta);
+    camera.position.y = camTarget.y + camDist * Math.cos(camPhi);
+    camera.position.z = camTarget.z + camDist * Math.sin(camPhi) * Math.cos(camTheta);
+    camera.lookAt(camTarget);
+}
+updateCamera();
+
+renderer.domElement.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    isRightDrag = e.button === 2;
+    prevMouse = { x: e.clientX, y: e.clientY };
+});
+
+renderer.domElement.addEventListener('mousemove', (e) => {
+    if (!isDragging) {
+        // Hover detection
+        handleHover(e);
+        return;
+    }
+    const dx = e.clientX - prevMouse.x;
+    const dy = e.clientY - prevMouse.y;
+
+    if (isRightDrag) {
+        camTarget.x -= dx * 0.08;
+        camTarget.y += dy * 0.08;
+    } else {
+        camTheta -= dx * 0.005;
+        camPhi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, camPhi - dy * 0.005));
+    }
+    prevMouse = { x: e.clientX, y: e.clientY };
+    updateCamera();
+});
+
+renderer.domElement.addEventListener('mouseup', () => { isDragging = false; });
+renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+
+renderer.domElement.addEventListener('wheel', (e) => {
+    camDist = Math.max(15, Math.min(120, camDist + e.deltaY * 0.05));
+    updateCamera();
+});
+
+// ── Raycasting for Hover / Click ────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const tooltip = document.getElementById('tooltip');
+
+function getIntersectedEquipment(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+
+    for (const [id, group] of Object.entries(equipmentGroups)) {
+        const intersects = raycaster.intersectObjects(group.children, true);
+        if (intersects.length > 0) {
+            return { id, group, data: group.userData };
+        }
+    }
+    return null;
+}
+
+function handleHover(event) {
+    const hit = getIntersectedEquipment(event);
+    if (hit) {
+        const d = hit.data.data || {};
+        const status = d.status || 'IDLE';
+        const statusColor = status === 'RUNNING' ? '#10b981' : status === 'WARNING' ? '#f59e0b' : status === 'FAULT' ? '#ef4444' : '#6b7280';
+        const statusBg = status === 'RUNNING' ? 'rgba(16,185,129,0.15)' : status === 'WARNING' ? 'rgba(245,158,11,0.15)' : status === 'FAULT' ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.15)';
+
+        let paramsHtml = '';
+        const skipKeys = new Set(['name', 'status']);
+        for (const [key, val] of Object.entries(d)) {
+            if (skipKeys.has(key)) continue;
+            const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            paramsHtml += `<div class="tt-param"><span class="tt-param-label">${label}</span><span class="tt-param-value">${val}</span></div>`;
+        }
+
+        tooltip.innerHTML = `
+            <div class="tt-title">${d.name || hit.data.label}</div>
+            <div class="tt-status" style="background:${statusBg};color:${statusColor};border:1px solid ${statusColor}40;">${status}</div>
+            ${paramsHtml}
+        `;
+        tooltip.style.display = 'block';
+        tooltip.style.left = (event.clientX + 15) + 'px';
+        tooltip.style.top = (event.clientY - 10) + 'px';
+
+        document.body.style.cursor = 'pointer';
+    } else {
+        tooltip.style.display = 'none';
+        document.body.style.cursor = 'default';
+    }
+}
+
+renderer.domElement.addEventListener('click', (event) => {
+    const hit = getIntersectedEquipment(event);
+    if (hit) {
+        // Send message to Streamlit
+        try {
+            window.parent.postMessage({ type: 'equipment_click', equipment_id: hit.id }, '*');
+        } catch(e) {}
+    }
+});
+
+// ── Animation Loop ──────────────────────────────────────────────────
+const clock = new THREE.Clock();
+
+function animate() {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    const elapsed = clock.getElapsedTime();
+
+    // Animate ore particles
+    particles.forEach(p => {
+        p.progress += p.speed;
+        if (p.progress >= 1) {
+            p.fromIdx = p.toIdx;
+            p.toIdx = Math.min(p.fromIdx + 1, equipmentList.length - 2);
+            p.progress = 0;
+            if (p.fromIdx >= equipmentList.length - 2) {
+                p.fromIdx = 0;
+                p.toIdx = 1;
+            }
+        }
+        const from = equipmentList[p.fromIdx];
+        const to = equipmentList[p.toIdx];
+        p.mesh.position.x = from.x + (to.x - from.x) * p.progress;
+        p.mesh.position.z = from.z + (to.z - from.z) * p.progress;
+        p.mesh.position.y = 1.5 + Math.sin(p.progress * Math.PI) * 1.5;
+    });
+
+    // Animate water particles
+    waterParticles.forEach(wp => {
+        wp.progress += 0.003;
+        if (wp.progress > 1) wp.progress = 0;
+        // Move from thickener overflow back to process
+        wp.mesh.position.x = 27;
+        wp.mesh.position.z = -14 * (1 - wp.progress);
+        wp.mesh.position.y = 1.5 + Math.sin(wp.progress * Math.PI) * 0.8;
+    });
+
+    // Animate rotating equipment (mills, thickener rake)
+    for (const [id, group] of Object.entries(equipmentGroups)) {
+        const eqDef = equipmentList.find(e => e.id === id);
+        if (eqDef && (eqDef.type === 'mill' || eqDef.type === 'thickener')) {
+            if (group.children[0]) {
+                group.children[0].rotation.y += delta * 0.5;
+            }
+        }
+        if (eqDef && eqDef.type === 'separator') {
+            if (group.children[0]) {
+                group.children[0].rotation.x += delta * 0.8;
+            }
+        }
+    }
+
+    // Subtle scene breathing
+    rimLight.intensity = 0.5 + Math.sin(elapsed * 0.5) * 0.1;
+
+    renderer.render(scene, camera);
+}
+
+animate();
+
+// ── Resize Handler ──────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# ML models
+backend/models/*.joblib
+backend/models/*.pkl
+
+# Data
+backend/data/*.csv
+backend/data/*.json
+!backend/data/.gitkeep
+
+# Streamlit
+frontend/.streamlit/secrets.toml
+
+# Extracted text
+extracted_doc.txt
+
+# Logs
+*.log
