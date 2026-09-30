@@ -12,6 +12,8 @@ services:
     envVars:
       - key: APP_ENV
         value: production
+      - key: PYTHON_VERSION
+        value: 3.10.0
     healthCheckPath: /health
 
   # ── Streamlit Frontend ─────────────────────────────────────────────
@@ -26,3 +28,5 @@ services:
         value: https://iron-ore-dt-backend.onrender.com
       - key: APP_ENV
         value: production
+      - key: PYTHON_VERSION
+        value: 3.10.0
