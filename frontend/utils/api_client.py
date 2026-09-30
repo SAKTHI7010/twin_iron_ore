@@ -7,7 +7,12 @@ import requests
 import streamlit as st
 from typing import Dict, Any, Optional
 
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+# Try to get BACKEND_URL from Streamlit secrets first, then environment variables
+try:
+    BACKEND_URL = st.secrets["BACKEND_URL"]
+except (FileNotFoundError, KeyError):
+    BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+
 REQUEST_TIMEOUT = 10  # seconds
 
 
