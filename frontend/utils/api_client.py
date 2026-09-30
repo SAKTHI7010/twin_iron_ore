@@ -13,6 +13,13 @@ try:
 except (FileNotFoundError, KeyError):
     BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 
+# Clean the URL to prevent errors if the user accidentally added /docs or /
+BACKEND_URL = BACKEND_URL.strip()
+if BACKEND_URL.endswith("/docs"):
+    BACKEND_URL = BACKEND_URL[:-5]
+if BACKEND_URL.endswith("/"):
+    BACKEND_URL = BACKEND_URL[:-1]
+
 REQUEST_TIMEOUT = 10  # seconds
 
 
