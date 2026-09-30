@@ -68,9 +68,8 @@ if state:
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(26,29,41,0.8)',
                 height=350, margin=dict(l=50, r=50, t=30, b=40),
                 legend=dict(orientation='h', y=1.12),
-                yaxis=dict(title='Fe Grade (%)', titlefont=dict(color='#10b981')),
-                yaxis2=dict(title='Recovery (%)', titlefont=dict(color='#8b5cf6'),
-                           overlaying='y', side='right'),
+                yaxis=dict(title=dict(text='Fe Grade (%)', font=dict(color='#10b981'))),
+                yaxis2=dict(title=dict(text='Recovery (%)', font=dict(color='#8b5cf6')), overlaying='y', side='right'),
                 xaxis=dict(showgrid=False),
             )
             st.plotly_chart(fig1, use_container_width=True)
@@ -95,9 +94,8 @@ if state:
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(26,29,41,0.8)',
                 height=350, margin=dict(l=50, r=50, t=30, b=40),
                 legend=dict(orientation='h', y=1.12),
-                yaxis=dict(title='SiO₂ (%)', titlefont=dict(color='#f59e0b')),
-                yaxis2=dict(title='Production (t/h)', titlefont=dict(color='#06b6d4'),
-                           overlaying='y', side='right'),
+                yaxis=dict(title=dict(text='SiO₂ (%)', font=dict(color='#f59e0b'))),
+                yaxis2=dict(title=dict(text='Production (t/h)', font=dict(color='#06b6d4')), overlaying='y', side='right'),
                 xaxis=dict(showgrid=False),
             )
             st.plotly_chart(fig2, use_container_width=True)

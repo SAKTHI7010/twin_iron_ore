@@ -95,7 +95,10 @@ st.markdown("""
 import os
 banner_path = os.path.join(os.path.dirname(__file__), "assets", "banner.jpg")
 if os.path.exists(banner_path):
-    st.image(banner_path, use_container_width=True)
+    # Reduce image size by placing it in a centered column layout
+    c1, c2, c3 = st.columns([1, 6, 1])
+    with c2:
+        st.image(banner_path, use_container_width=True)
 
 render_simulated_banner()
 
