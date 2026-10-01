@@ -161,10 +161,10 @@ if state:
 
         for label, value, icon in summary_items:
             st.markdown(f"""
-            <div class="eq-card-param" style="padding:8px 0;">
-                <span class="eq-card-param-label">{icon} {label}</span>
-                <span class="eq-card-param-value">{value}</span>
-            </div>
+<div class="eq-card-param" style="padding:8px 0;">
+<span class="eq-card-param-label">{icon} {label}</span>
+<span class="eq-card-param-value">{value}</span>
+</div>
             """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)

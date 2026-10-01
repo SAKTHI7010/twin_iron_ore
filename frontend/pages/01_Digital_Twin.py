@@ -99,11 +99,11 @@ if state:
 
                     with col:
                         st.markdown(f"""
-                        <div class="flow-node">
-                            <div style="font-size:1.6rem;">{icon}</div>
-                            <div class="flow-node-title">{name}</div>
-                            {badge}
-                        </div>
+<div class="flow-node">
+<div style="font-size:1.6rem;">{icon}</div>
+<div class="flow-node-title">{name}</div>
+{badge}
+</div>
                         """, unsafe_allow_html=True)
 
             if i == 0:

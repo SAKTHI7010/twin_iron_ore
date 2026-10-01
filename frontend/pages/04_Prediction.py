@@ -131,12 +131,12 @@ if st.button("🔮 Run Prediction", type="primary", use_container_width=True):
         # Model info
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(f"""
-        <div class="eq-card">
-            <div class="eq-card-title">Model Information</div>
-            <div class="eq-card-param"><span class="eq-card-param-label">Model Type</span><span class="eq-card-param-value">{result.get('model_type', 'N/A')}</span></div>
-            <div class="eq-card-param"><span class="eq-card-param-label">Confidence</span><span class="eq-card-param-value">{result.get('confidence', 'N/A')}</span></div>
-            <div class="eq-card-param"><span class="eq-card-param-label">Data Source</span><span class="eq-card-param-value">{'Simulated' if result.get('is_simulated') else 'Real'}</span></div>
-        </div>
+<div class="eq-card">
+<div class="eq-card-title">Model Information</div>
+<div class="eq-card-param"><span class="eq-card-param-label">Model Type</span><span class="eq-card-param-value">{result.get('model_type', 'N/A')}</span></div>
+<div class="eq-card-param"><span class="eq-card-param-label">Confidence</span><span class="eq-card-param-value">{result.get('confidence', 'N/A')}</span></div>
+<div class="eq-card-param"><span class="eq-card-param-label">Data Source</span><span class="eq-card-param-value">{'Simulated' if result.get('is_simulated') else 'Real'}</span></div>
+</div>
         """, unsafe_allow_html=True)
     else:
         st.error("Prediction failed. Check backend connection.")

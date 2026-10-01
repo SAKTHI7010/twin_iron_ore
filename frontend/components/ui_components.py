@@ -267,9 +267,9 @@ def render_status_badge(status: str) -> str:
     }.get(status, "#6b7280")
 
     return f"""<span class="status-badge {css_class}">
-        <span style="width:7px;height:7px;border-radius:50%;background:{dot_color};display:inline-block;"></span>
-        {status}
-    </span>"""
+<span style="width:7px;height:7px;border-radius:50%;background:{dot_color};display:inline-block;"></span>
+{status}
+</span>"""
 
 
 def render_simulated_banner():
@@ -311,17 +311,17 @@ def render_equipment_card(eq_id: str, eq_data: Dict[str, Any]):
             continue
         label = key.replace("_", " ").title()
         params_html += f"""
-        <div class="eq-card-param">
-            <span class="eq-card-param-label">{label}</span>
-            <span class="eq-card-param-value">{value}</span>
-        </div>"""
+<div class="eq-card-param">
+<span class="eq-card-param-label">{label}</span>
+<span class="eq-card-param-value">{value}</span>
+</div>"""
 
     st.markdown(f"""
-    <div class="eq-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div class="eq-card-title">{name}</div>
-            {badge}
-        </div>
-        {params_html}
-    </div>
+<div class="eq-card">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+<div class="eq-card-title">{name}</div>
+{badge}
+</div>
+{params_html}
+</div>
     """, unsafe_allow_html=True)

@@ -133,12 +133,12 @@ if state:
                 severity = alarm.get("severity", "INFO")
                 icon = "🔴" if severity == "CRITICAL" else "🟡" if severity == "WARNING" else "🔵"
                 st.markdown(f"""
-                <div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.82rem;">
-                    <span>{icon}</span>
-                    <span style="color:#6b7280;min-width:160px;">{alarm.get('timestamp', '')[:19]}</span>
-                    <span style="color:#8892a4;min-width:120px;">{alarm.get('equipment', '')}</span>
-                    <span style="color:#FAFAFA;">{alarm.get('message', '')}</span>
-                </div>
+<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.82rem;">
+<span>{icon}</span>
+<span style="color:#6b7280;min-width:160px;">{alarm.get('timestamp', '')[:19]}</span>
+<span style="color:#8892a4;min-width:120px;">{alarm.get('equipment', '')}</span>
+<span style="color:#FAFAFA;">{alarm.get('message', '')}</span>
+</div>
                 """, unsafe_allow_html=True)
         else:
             st.success("✅ No active alarms")

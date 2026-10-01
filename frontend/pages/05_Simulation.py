@@ -120,10 +120,10 @@ if state:
 
         for label, value in input_items:
             st.markdown(f"""
-            <div class="eq-card-param" style="padding:6px 0;">
-                <span class="eq-card-param-label">{label}</span>
-                <span class="eq-card-param-value">{value}</span>
-            </div>
+<div class="eq-card-param" style="padding:6px 0;">
+<span class="eq-card-param-label">{label}</span>
+<span class="eq-card-param-value">{value}</span>
+</div>
             """, unsafe_allow_html=True)
 
     with col_r:
